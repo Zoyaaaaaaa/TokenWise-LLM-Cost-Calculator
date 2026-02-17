@@ -1,0 +1,117 @@
+================================================================================
+LLM PRICING CALCULATOR - RUN THIS NOW
+================================================================================
+
+OPTION 1: AUTO START (Easiest - Single Command)
+──────────────────────────────────────────────────────────────────────────────
+
+macOS / Linux:
+  chmod +x run-system.sh && ./run-system.sh
+
+Windows (PowerShell):
+  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser; .\run-system.ps1
+
+
+OPTION 2: MANUAL START (Two Terminal Windows)
+──────────────────────────────────────────────────────────────────────────────
+
+TERMINAL 1 - Start Backend:
+  cd scripts
+  pip install -r requirements.txt
+  python fastapi-backend.py
+
+Expected output: INFO:     Uvicorn running on http://0.0.0.0:8000
+
+
+TERMINAL 2 - Start Frontend:
+  pnpm install
+  pnpm dev
+
+Expected output: ▲ Next.js 15.x - Local: http://localhost:3000
+
+
+THEN OPEN IN BROWSER:
+  http://localhost:3000
+
+
+SETUP API KEYS (Optional but Recommended)
+──────────────────────────────────────────────────────────────────────────────
+
+1. Get Gemini API Key:
+   - Go to: https://ai.google.dev/
+   - Click "Get API Key"
+   - Copy your key
+
+2. Get Tavily API Key:
+   - Go to: https://tavily.com/
+   - Sign up
+   - Copy your key
+
+3. Create scripts/.env file:
+   cd scripts
+   cp .env.example .env
+   # Edit .env and paste your keys
+
+   GEMINI_API_KEY=your_gemini_key_here
+   TAVILY_API_KEY=your_tavily_key_here
+
+
+VERIFY IT WORKS
+──────────────────────────────────────────────────────────────────────────────
+
+Test Backend:
+  curl http://localhost:8000/
+
+Test Frontend:
+  Open http://localhost:3000 in browser
+
+Test Chat:
+  1. Click "AI Assistant" tab
+  2. Type: "What is GPT-4o pricing?"
+  3. Should get a response
+
+
+TROUBLESHOOTING
+──────────────────────────────────────────────────────────────────────────────
+
+Port 8000 already in use?
+  macOS/Linux: lsof -i :8000
+  Windows: netstat -ano | findstr :8000
+
+Port 3000 already in use?
+  Run frontend on different port: pnpm dev -- -p 3001
+
+Module not found?
+  cd scripts
+  pip install -r requirements.txt
+
+Backend won't connect?
+  Check .env.local has: PYTHON_BACKEND_URL=http://localhost:8000
+
+No AI responses?
+  Add GEMINI_API_KEY and TAVILY_API_KEY to scripts/.env
+
+
+DOCUMENTATION
+──────────────────────────────────────────────────────────────────────────────
+
+Quick Start:      Read QUICK_START.md
+Full Setup:       Read SETUP.md
+All Commands:     Read COMMANDS.md
+Architecture:     Read SYSTEM_OVERVIEW.md
+
+
+WHAT YOU GET
+──────────────────────────────────────────────────────────────────────────────
+
+✓ LLM Calculator     - Calculate costs for any model
+✓ Model Comparison   - Compare pricing across providers
+✓ Budget Forecasting - Plan yearly budgets
+✓ AI Assistant       - Chat about pricing with AI
+✓ Live Pricing Data  - Real-time rates from official sources
+✓ Full Stack App     - React frontend + FastAPI backend
+
+
+================================================================================
+Ready? Just run the command above and open http://localhost:3000
+================================================================================
