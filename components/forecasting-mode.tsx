@@ -4,14 +4,20 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
-import { findModelsWithinBudget, getAllModels, calculateCost, type ModelPricing } from '@/lib/pricing-data';
+import {
+  findModelsWithinBudget,
+  getAllModels,
+  calculateCost,
+  type ModelPricing,
+} from '@/lib/pricing-data';
+import { TrendingUp, ArrowRight, CheckCircle2, XCircle, Wallet } from 'lucide-react';
 
 interface ForecastResult {
   model: ModelPricing;
   costPerCall: number;
   monthlyCost: number;
   callCount: number;
+  withinBudget: boolean;
 }
 
 export function ForecastingMode() {
@@ -22,147 +28,188 @@ export function ForecastingMode() {
   const [results, setResults] = useState<ForecastResult[] | null>(null);
 
   const handleForecast = () => {
-    const afffordableModels = findModelsWithinBudget(
+    const affordableModels = findModelsWithinBudget(
       monthlyBudget,
       avgInputTokens,
       avgOutputTokens,
       estimatedCalls
     );
 
-    const forecastResults: ForecastResult[] = afffordableModels.map((model) => {
-      const costPerCall = calculateCost(model, avgInputTokens, avgOutputTokens);
-      const monthlyCost = costPerCall.totalCost * estimatedCalls;
+    const affordableNames = new Set(affordableModels.map((m) => m.name));
 
-      return {
-        model,
-        costPerCall: costPerCall.totalCost,
-        monthlyCost,
-        callCount: estimatedCalls,
-      };
-    });
+    const allResults: ForecastResult[] = getAllModels()
+      .map((model) => {
+        const costPerCall = calculateCost(model, avgInputTokens, avgOutputTokens);
+        const monthlyCost = costPerCall.totalCost * estimatedCalls;
+        return {
+          model,
+          costPerCall: costPerCall.totalCost,
+          monthlyCost,
+          callCount: estimatedCalls,
+          withinBudget: affordableNames.has(model.name),
+        };
+      })
+      .sort((a, b) => a.monthlyCost - b.monthlyCost);
 
-    // Show all models sorted by cost if none are within budget
-    if (forecastResults.length === 0) {
-      const allResults = getAllModels()
-        .map((model) => {
-          const costPerCall = calculateCost(model, avgInputTokens, avgOutputTokens);
-          const monthlyCost = costPerCall.totalCost * estimatedCalls;
-          return { model, costPerCall: costPerCall.totalCost, monthlyCost, callCount: estimatedCalls };
-        })
-        .sort((a, b) => a.monthlyCost - b.monthlyCost)
-        .slice(0, 5);
-
-      setResults(allResults);
-    } else {
-      setResults(forecastResults.sort((a, b) => a.monthlyCost - b.monthlyCost));
-    }
+    setResults(allResults);
   };
 
-  const estimatedTotalCost = (avgInputTokens + avgOutputTokens) / 1_000_000 * 100 * estimatedCalls; // Rough estimate
+  const withinBudgetCount = results?.filter((r) => r.withinBudget).length ?? 0;
+  const cheapestResult = results?.[0];
+
+  const fields = [
+    {
+      id: 'monthlyBudget',
+      label: 'Monthly Budget ($)',
+      value: monthlyBudget,
+      setter: setMonthlyBudget,
+      step: 10,
+    },
+    {
+      id: 'estimatedCalls',
+      label: 'Monthly API Calls',
+      value: estimatedCalls,
+      setter: setEstimatedCalls,
+      step: 100,
+    },
+    {
+      id: 'avgInputTokens',
+      label: 'Avg Input Tokens / Call',
+      value: avgInputTokens,
+      setter: setAvgInputTokens,
+      step: 100,
+    },
+    {
+      id: 'avgOutputTokens',
+      label: 'Avg Output Tokens / Call',
+      value: avgOutputTokens,
+      setter: setAvgOutputTokens,
+      step: 100,
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Input Section */}
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Budget Forecasting</h2>
-        <p className="text-muted-foreground text-sm mb-4">
-          Plan your LLM spending and find models within your budget.
-        </p>
-
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="space-y-2">
-            <Label htmlFor="monthlyBudget">Monthly Budget ($)</Label>
-            <Input
-              id="monthlyBudget"
-              type="number"
-              value={monthlyBudget}
-              onChange={(e) => setMonthlyBudget(Number(e.target.value))}
-              min="0"
-              step="10"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="estimatedCalls">Estimated Monthly API Calls</Label>
-            <Input
-              id="estimatedCalls"
-              type="number"
-              value={estimatedCalls}
-              onChange={(e) => setEstimatedCalls(Number(e.target.value))}
-              min="0"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="avgInputTokens">Avg Input Tokens per Call</Label>
-            <Input
-              id="avgInputTokens"
-              type="number"
-              value={avgInputTokens}
-              onChange={(e) => setAvgInputTokens(Number(e.target.value))}
-              min="0"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="avgOutputTokens">Avg Output Tokens per Call</Label>
-            <Input
-              id="avgOutputTokens"
-              type="number"
-              onChange={(e) => setAvgOutputTokens(Number(e.target.value))}
-              value={avgOutputTokens}
-              min="0"
-            />
-          </div>
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <TrendingUp className="h-4.5 w-4.5 text-primary" size={18} />
+        <div>
+          <h2 className="text-base font-semibold text-foreground">Budget Forecasting</h2>
+          <p className="text-xs text-muted-foreground">
+            Plan your LLM spending and discover which models fit within your budget.
+          </p>
         </div>
+      </div>
 
-        <Button onClick={handleForecast} className="w-full">
-          📈 Generate Forecast
-        </Button>
-      </Card>
+      {/* Input grid */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {fields.map((field) => (
+          <div key={field.id} className="space-y-1.5">
+            <Label
+              htmlFor={field.id}
+              className="text-xs font-medium text-muted-foreground uppercase tracking-wide"
+            >
+              {field.label}
+            </Label>
+            <Input
+              id={field.id}
+              type="number"
+              value={field.value}
+              onChange={(e) => field.setter(Number(e.target.value))}
+              min="0"
+              step={field.step}
+              className="rounded-xl border-border/60 bg-card h-10"
+            />
+          </div>
+        ))}
+      </div>
 
-      {/* Results Section */}
-      {results ? (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Card className="p-4">
-              <p className="text-sm text-muted-foreground">Your Budget</p>
-              <p className="text-3xl font-bold">${monthlyBudget.toFixed(0)}</p>
-            </Card>
-            <Card className="p-4">
-              <p className="text-sm text-muted-foreground">Estimated Monthly Cost</p>
-              <p className="text-3xl font-bold">
-                ${(results[0]?.monthlyCost || 0).toFixed(2)}
+      <Button onClick={handleForecast} className="w-full rounded-xl h-10 gap-2 font-medium shadow-sm">
+        Generate Forecast
+        <ArrowRight size={15} />
+      </Button>
+
+      {/* Results */}
+      {results && (
+        <div className="space-y-4 animate-fade-in-up">
+          {/* Summary cards */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-border/60 bg-card p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Wallet size={14} className="text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">Your Budget</p>
+              </div>
+              <p className="text-2xl font-bold text-foreground">${monthlyBudget.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">per month</p>
+            </div>
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle2 size={14} className="text-emerald-600" />
+                <p className="text-xs text-emerald-700">Models Within Budget</p>
+              </div>
+              <p className="text-2xl font-bold text-emerald-700">{withinBudgetCount}</p>
+              <p className="text-xs text-emerald-600">of {results.length} models</p>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-card p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp size={14} className="text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">Cheapest Option</p>
+              </div>
+              <p className="text-2xl font-bold text-foreground">
+                ${cheapestResult?.monthlyCost.toFixed(2)}
               </p>
-            </Card>
+              <p className="text-xs text-muted-foreground truncate">{cheapestResult?.model.name}</p>
+            </div>
           </div>
 
-          <div className="space-y-3">
+          {/* Model list */}
+          <div className="space-y-2">
             {results.map((result) => (
-              <Card key={result.model.name} className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold">{result.model.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {result.model.provider} • {result.model.description}
+              <div
+                key={result.model.name}
+                className={`flex items-center justify-between rounded-xl border p-4 transition-all ${result.withinBudget
+                    ? 'border-emerald-200 bg-emerald-50/40 hover:border-emerald-300'
+                    : 'border-border/60 bg-card hover:border-border'
+                  }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {result.withinBudget ? (
+                    <CheckCircle2 size={16} className="flex-shrink-0 text-emerald-500" />
+                  ) : (
+                    <XCircle size={16} className="flex-shrink-0 text-muted-foreground/40" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {result.model.name}
                     </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold">${result.monthlyCost.toFixed(2)}</p>
                     <p className="text-xs text-muted-foreground">
-                      ${result.costPerCall.toFixed(4)}/call
+                      {result.model.provider} · ${result.costPerCall.toFixed(5)}/call
                     </p>
                   </div>
                 </div>
-              </Card>
+                <div className="text-right flex-shrink-0 ml-4">
+                  <p
+                    className={`text-lg font-bold ${result.withinBudget ? 'text-emerald-600' : 'text-foreground'
+                      }`}
+                  >
+                    ${result.monthlyCost.toFixed(2)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">/ month</p>
+                </div>
+              </div>
             ))}
           </div>
         </div>
-      ) : (
-        <div className="p-12 border border-dashed rounded-lg text-center">
-          <p className="text-4xl mb-2">📊</p>
-          <p className="text-muted-foreground">
-            Enter your parameters and click "Generate Forecast" to see models within your budget
+      )}
+
+      {!results && (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/20 p-14 text-center">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/8">
+            <TrendingUp className="h-6 w-6 text-primary/60" />
+          </div>
+          <p className="text-sm font-medium text-foreground">No forecast yet</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Enter your parameters above and click Generate Forecast.
           </p>
         </div>
       )}

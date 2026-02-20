@@ -16,106 +16,131 @@ export interface PricingResult {
   model: string;
 }
 
-// Pricing data (Feb 2026)
+// Pricing data (Feb 2026 – documented public API pricing per 1M tokens)
+
 export const MODELS: Record<string, ModelPricing[]> = {
+
   openai: [
     {
-      name: 'GPT-4',
-      provider: 'OpenAI',
-      inputPrice: 30.0,
-      outputPrice: 60.0,
-      description: 'Most capable model',
+      name: "GPT-5.2",
+      provider: "OpenAI",
+      inputPrice: 1.75,
+      outputPrice: 14.0,
+      cachedInputPrice: 0.175,
+      description: "Latest flagship reasoning + coding model from OpenAI",
     },
     {
-      name: 'GPT-4 Turbo',
-      provider: 'OpenAI',
-      inputPrice: 10.0,
-      outputPrice: 30.0,
-      description: 'Faster and cheaper than GPT-4',
-    },
-    {
-      name: 'GPT-4o',
-      provider: 'OpenAI',
-      inputPrice: 2.5,
-      outputPrice: 10.0,
-      cachedInputPrice: 1.25,
-      description: 'Latest optimized model',
-    },
-    {
-      name: 'GPT-4o mini',
-      provider: 'OpenAI',
-      inputPrice: 0.15,
-      outputPrice: 0.6,
-      description: 'Fast and affordable',
-    },
-    {
-      name: 'GPT-3.5 Turbo',
-      provider: 'OpenAI',
-      inputPrice: 0.5,
-      outputPrice: 1.5,
-      description: 'Legacy fast model',
-    },
-  ],
-  gemini: [
-    {
-      name: 'Gemini 3 Pro',
-      provider: 'Google',
-      inputPrice: 2.0,
-      outputPrice: 12.0,
-      description: 'Most capable Gemini model',
-    },
-    {
-      name: 'Gemini 2.5 Pro',
-      provider: 'Google',
+      name: "GPT-5.1",
+      provider: "OpenAI",
       inputPrice: 1.25,
       outputPrice: 10.0,
-      description: 'Advanced reasoning model',
+      cachedInputPrice: 0.125,
+      description: "Previous generation flagship model",
     },
     {
-      name: 'Gemini 3 Flash',
-      provider: 'Google',
-      inputPrice: 0.5,
-      outputPrice: 3.0,
-      description: 'Fast multimodal model',
+      name: "GPT-5 (legacy)",
+      provider: "OpenAI",
+      inputPrice: 1.25,
+      outputPrice: 10.0,
+      cachedInputPrice: 0.125,
+      description: "Earlier flagship model (still supported)",
     },
     {
-      name: 'Gemini 2.5 Flash',
-      provider: 'Google',
-      inputPrice: 0.3,
-      outputPrice: 2.5,
-      description: 'Latest fast model',
+      name: "GPT-5 mini",
+      provider: "OpenAI",
+      inputPrice: 0.25,
+      outputPrice: 2.0,
+      cachedInputPrice: 0.025,
+      description: "Affordable flagship-class alternative",
     },
     {
-      name: 'Gemini 2.5 Flash-Lite',
-      provider: 'Google',
-      inputPrice: 0.1,
-      outputPrice: 0.4,
-      description: 'Most cost-effective',
+      name: "GPT-5 nano",
+      provider: "OpenAI",
+      inputPrice: 0.05,
+      outputPrice: 0.40,
+      cachedInputPrice: 0.005,
+      description: "Lowest-cost flagship-class alternative",
+    },
+    {
+      name: "GPT-4o",
+      provider: "OpenAI",
+      inputPrice: 2.50,
+      outputPrice: 10.0,
+      cachedInputPrice: 1.25,
+      description: "OpenAI multimodal model",
+    },
+    {
+      name: "GPT-4o mini",
+      provider: "OpenAI",
+      inputPrice: 0.15,
+      outputPrice: 0.60,
+      cachedInputPrice: 0.075,
+      description: "Fast, low-cost OpenAI model",
     },
   ],
+
   anthropic: [
     {
-      name: 'Claude 3 Opus',
-      provider: 'Anthropic',
-      inputPrice: 15.0,
-      outputPrice: 75.0,
-      description: 'Most powerful Claude',
-    },
-    {
-      name: 'Claude 3 Sonnet',
-      provider: 'Anthropic',
+      name: "Claude Sonnet 4.6",
+      provider: "Anthropic",
       inputPrice: 3.0,
       outputPrice: 15.0,
-      description: 'Balanced performance',
+      description: "Latest workhorse Claude model with strong reasoning and coding capabilities",
     },
     {
-      name: 'Claude 3 Haiku',
-      provider: 'Anthropic',
-      inputPrice: 0.25,
-      outputPrice: 1.25,
-      description: 'Fast and compact',
+      name: "Claude Opus 4.6",
+      provider: "Anthropic",
+      inputPrice: 5.0,
+      outputPrice: 25.0,
+      description: "Top-tier powerful Claude model",
+    },
+    {
+      name: "Claude Haiku 4.5",
+      provider: "Anthropic",
+      inputPrice: 1.0,
+      outputPrice: 5.0,
+      description: "Fast and cost-efficient model in the Claude family",
     },
   ],
+
+  google: [
+    {
+      name: "Gemini 2.5 Pro",
+      provider: "Google",
+      inputPrice: 1.25,
+      outputPrice: 10.0,
+      description: "Advanced Google Gemini reasoning model, 1M+ context",
+    },
+    {
+      name: "Gemini 2.5 Flash",
+      provider: "Google",
+      inputPrice: 0.30,
+      outputPrice: 2.50,
+      description: "Balanced cost and performance Gemini model",
+    },
+    {
+      name: "Gemini 2.5 Flash-Lite",
+      provider: "Google",
+      inputPrice: 0.10,
+      outputPrice: 0.40,
+      description: "Most cost-effective Gemini Flash variant",
+    },
+    {
+      name: "Gemini 1.5 Flash",
+      provider: "Google",
+      inputPrice: 0.075,
+      outputPrice: 0.30,
+      description: "Very low-cost high-efficiency model",
+    },
+    {
+      name: "Gemini 1.5 Flash-8B",
+      provider: "Google",
+      inputPrice: 0.0375,
+      outputPrice: 0.15,
+      description: "Ultra-low cost Flash-8B tier",
+    },
+  ],
+
 };
 
 export function getAllModels(): ModelPricing[] {
@@ -157,7 +182,7 @@ export function findCheapestModel(
 ): ModelPricing | null {
   const results = compareModels(inputTokens, outputTokens);
   if (results.length === 0) return null;
-  
+
   const cheapest = results.reduce((prev, current) =>
     prev.totalCost < current.totalCost ? prev : current
   );
@@ -172,7 +197,7 @@ export function findModelsWithinBudget(
   estimatedCalls: number
 ): ModelPricing[] {
   const costPerCall = (avgInputTokens / 1_000_000 + avgOutputTokens / 1_000_000) * 100; // Rough estimate
-  
+
   return getAllModels().filter((model) => {
     const result = calculateCost(model, avgInputTokens, avgOutputTokens);
     return result.totalCost * estimatedCalls <= monthlyBudget;
