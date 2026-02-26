@@ -5,13 +5,17 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pricing_ai_assistant import PricingDataFetcher, PricingAIAssistant, TAVILY_API_KEY, GEMINI_API_KEY
+# TAVILY_API_KEY = ""
+# GEMINI_API_KEY = ""
+
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
 # Initialize FastAPI
-app = FastAPI(title="LLM Pricing API", description="Backend for LLM Pricing Calculator")
+app = FastAPI(title="LLM Pricing API")
+
 
 # Enable CORS
 app.add_middleware(
@@ -26,6 +30,7 @@ app.add_middleware(
 # We use the existing classes but will customize behavior for the API
 fetcher = PricingDataFetcher()
 assistant = PricingAIAssistant()
+
 
 # Define Request Models
 class ChatRequest(BaseModel):
@@ -124,18 +129,19 @@ async def get_live_pricing():
             return get_fallback_pricing()
 
         # 3. Use Gemini to parse this into the required JSON structure
-        # We assume 'assistant.client' is the Gemini client instance
-        if not assistant.client:
+        if not assistant.llm:
              # Fallback if no LLM available
              return get_fallback_pricing()
 
-        response = assistant.client.models.generate_content(
-            model=assistant.model_name,
-            contents=f"{PRICING_EXTRACTION_PROMPT}\n\n{context_text}"
-        )
+        # Using assistant.llm (ChatGoogleGenerativeAI) instead of the direct client
+        from langchain_core.messages import HumanMessage
+        response = assistant.llm.invoke([
+            HumanMessage(content=f"{PRICING_EXTRACTION_PROMPT}\n\n{context_text}")
+        ])
         
         # Clean response (remove markdown code blocks if any)
-        text_response = response.text.replace("```json", "").replace("```", "").strip()
+        text_response = response.content.replace("```json", "").replace("```", "").strip()
+
         
         try:
             parsed_pricing = json.loads(text_response)
@@ -174,25 +180,19 @@ async def chat(request: ChatRequest):
     # For now, we reuse the fetcher to get broad pricing context
     
     try:
-        # We'll fetch fresh context for the chat if it's a pricing question
-        # But to be fast, we might rely on the conversation history + fetch on demand
-        # The 'assistant.query' method does this logic. 
-        # We will override the logic slightly to enforce the system prompt.
-        
-        # Temporarily swap system prompt (not thread safe in prod but ok for this demo)
-        original_prompt = assistant.system_prompt
-        assistant.system_prompt = strict_system_prompt
-        
-        # Perform query
-        result = assistant.query(session_id, request.message, fetch_live_pricing=True)
-        
-        # Restore prompt
-        assistant.system_prompt = original_prompt
+        # Perform query using the new support for dynamic system prompts
+        result = assistant.query(
+            session_id, 
+            request.message, 
+            fetch_live_pricing=True,
+            system_prompt=strict_system_prompt
+        )
         
         return {
             "response": result['assistant_response'],
             "session_id": session_id
         }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
