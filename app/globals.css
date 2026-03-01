@@ -365,3 +365,25 @@
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
+
+/* ── Custom Breakpoint for extra small screens ── */
+@media (min-width: 480px) {
+  .xs\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ── Mobile Optimizations ── */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* ── Prevent text overflow on mobile ── */
+.truncate-multiline {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

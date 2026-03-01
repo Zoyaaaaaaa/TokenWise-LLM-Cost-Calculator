@@ -16,6 +16,29 @@ export interface PricingResult {
   model: string;
 }
 
+// Currency conversion utilities
+export const USD_TO_INR_RATE = 91.08; // Approximate exchange rate (1 USD = 91.08 INR)
+
+export type Currency = 'USD' | 'INR';
+
+export function convertToINR(usdAmount: number): number {
+  return usdAmount * USD_TO_INR_RATE;
+}
+
+export function formatCurrency(amount: number, currency: Currency): string {
+  if (currency === 'INR') {
+    return `₹${amount.toFixed(2)}`;
+  }
+  return `$${amount.toFixed(4)}`;
+}
+
+export function formatCurrencyCompact(amount: number, currency: Currency): string {
+  if (currency === 'INR') {
+    return `₹${amount.toFixed(2)}`;
+  }
+  return `$${amount.toFixed(2)}`;
+}
+
 // Pricing data (Feb 2026 – documented public API pricing per 1M tokens)
 
 export const MODELS: Record<string, ModelPricing[]> = {

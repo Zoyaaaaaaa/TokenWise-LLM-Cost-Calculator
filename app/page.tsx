@@ -54,13 +54,6 @@ export default function Home() {
       color: 'text-emerald-600',
       bg: 'bg-emerald-50',
     },
-    {
-      icon: Zap,
-      label: 'Most Cost-Effective',
-      value: cheapestModel.name,
-      color: 'text-violet-600',
-      bg: 'bg-violet-50',
-    },
   ];
 
   const tips = [
@@ -96,46 +89,47 @@ export default function Home() {
 
       {/* ── Header ── */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
+        <div className="container mx-auto px-3 sm:px-4 lg:px-8">
+          <div className="flex h-14 sm:h-16 items-center justify-between">
             {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-                <Calculator className="h-4.5 w-4.5" size={18} />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                <Calculator className="h-4 w-4 sm:h-4.5 sm:w-4.5" size={16} />
               </div>
               <div>
-                <span className="text-base font-semibold tracking-tight text-foreground">
+                <span className="text-sm sm:text-base font-semibold tracking-tight text-foreground">
                   LLM Pricing
                 </span>
-                <span className="ml-1 text-base font-semibold tracking-tight text-primary">
+                <span className="ml-1 text-sm sm:text-base font-semibold tracking-tight text-primary">
                   Calculator
                 </span>
               </div>
             </div>
 
             {/* Live badge */}
-            <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
+            <div className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium text-emerald-700">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-              Live Pricing · 2026
+              <span className="hidden sm:inline">Live Pricing · 2026</span>
+              <span className="sm:hidden">Live · 2026</span>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto px-3 sm:px-4 lg:px-8">
 
         {/* ── Hero ── */}
-        <section className="py-14 text-center animate-fade-in-up">
-          <div className="mx-auto max-w-2xl">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary">
-              <Zap size={12} />
+        <section className="py-8 sm:py-14 text-center animate-fade-in-up">
+          <div className="mx-auto max-w-2xl px-2">
+            <div className="mb-3 sm:mb-4 inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 sm:px-4 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium text-primary">
+              <Zap size={10} className="sm:w-3 sm:h-3" />
               Real-time pricing across all major providers
             </div>
-            <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+            <h1 className="mb-3 sm:mb-4 text-2xl sm:text-4xl font-bold tracking-tight text-foreground lg:text-5xl">
               Compare LLM Costs
               <span className="block text-primary">Instantly</span>
             </h1>
-            <p className="text-base text-muted-foreground leading-relaxed">
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed px-2 sm:px-0">
               Calculate, compare, and forecast your AI API spending across OpenAI, Google Gemini,
               and Anthropic — all in one place.
             </p>
@@ -143,19 +137,19 @@ export default function Home() {
         </section>
 
         {/* ── Stats ── */}
-        <section className="mb-10 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <section className="mb-6 sm:mb-10 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {stats.map((stat, i) => (
               <div
                 key={i}
-                className="flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
+                className="flex items-center gap-3 sm:gap-4 rounded-xl sm:rounded-2xl border border-border/60 bg-card p-3 sm:p-5 shadow-sm transition-shadow hover:shadow-md"
               >
-                <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl ${stat.bg}`}>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                <div className={`flex h-9 w-9 sm:h-11 sm:w-11 flex-shrink-0 items-center justify-center rounded-lg sm:rounded-xl ${stat.bg}`}>
+                  <stat.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${stat.color}`} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
-                  <p className={`mt-0.5 truncate text-xl font-bold ${stat.color}`}>{stat.value}</p>
+                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground">{stat.label}</p>
+                  <p className={`mt-0.5 truncate text-lg sm:text-xl font-bold ${stat.color}`}>{stat.value}</p>
                 </div>
               </div>
             ))}
@@ -163,26 +157,27 @@ export default function Home() {
         </section>
 
         {/* ── Main Tabs ── */}
-        <main className="mb-16 animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <main className="mb-10 sm:mb-16 animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
             {/* Tab List */}
-            <TabsList className="inline-flex h-auto gap-1 rounded-2xl border border-border/60 bg-muted/50 p-1.5">
+            <TabsList className="inline-flex h-auto w-full sm:w-auto flex-wrap sm:flex-nowrap justify-center gap-1 rounded-xl sm:rounded-2xl border border-border/60 bg-muted/50 p-1 sm:p-1.5">
               {tabs.map((tab) => (
                 <TabsTrigger
                   key={tab.value}
                   value={tab.value}
-                  className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all
+                  className="flex items-center gap-1.5 sm:gap-2 rounded-lg sm:rounded-xl px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all flex-1 sm:flex-none justify-center
                     data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm
                     data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground"
                 >
-                  <tab.icon size={15} />
-                  {tab.label}
+                  <tab.icon size={14} className="sm:w-[15px] sm:h-[15px]" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
                 </TabsTrigger>
               ))}
             </TabsList>
 
             {/* Tab Content */}
-            <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+            <div className="rounded-xl sm:rounded-2xl border border-border/60 bg-card p-4 sm:p-6 shadow-sm">
               <TabsContent value="calculator" className="mt-0 animate-fade-in">
                 <CalculatorMode />
               </TabsContent>
@@ -200,23 +195,23 @@ export default function Home() {
         </main>
 
         {/* ── Tips ── */}
-        <section className="mb-16 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-foreground">Token Optimization Tips</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+        <section className="mb-10 sm:mb-16 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+          <div className="mb-4 sm:mb-6 px-1">
+            <h2 className="text-lg sm:text-xl font-semibold text-foreground">Token Optimization Tips</h2>
+            <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
               Simple strategies to reduce your LLM API costs significantly.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {tips.map((tip, idx) => (
               <div
                 key={idx}
-                className="group rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
+                className="group rounded-xl sm:rounded-2xl border border-border/60 bg-card p-4 sm:p-5 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
               >
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/8 transition-colors group-hover:bg-primary/12">
-                  <tip.icon className="h-5 w-5 text-primary" />
+                <div className="mb-2 sm:mb-3 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl bg-primary/8 transition-colors group-hover:bg-primary/12">
+                  <tip.icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 </div>
-                <h3 className="mb-1.5 text-sm font-semibold text-foreground">{tip.title}</h3>
+                <h3 className="mb-1 sm:mb-1.5 text-sm font-semibold text-foreground">{tip.title}</h3>
                 <p className="text-xs leading-relaxed text-muted-foreground">{tip.desc}</p>
               </div>
             ))}
@@ -226,8 +221,8 @@ export default function Home() {
 
       {/* ── Footer ── */}
       <footer className="border-t border-border/60 bg-muted/30">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 mb-8">
+        <div className="container mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-10">
+          <div className="grid grid-cols-1 gap-6 sm:gap-8 sm:grid-cols-3 mb-6 sm:mb-8">
             {/* Brand */}
             <div>
               <div className="flex items-center gap-2 mb-3">
@@ -280,11 +275,11 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="border-t border-border/60 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-muted-foreground">
+          <div className="border-t border-border/60 pt-4 sm:pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 text-center sm:text-left">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
               © 2026 LLM Pricing Calculator. Built with Next.js & React.
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
               Always verify pricing with official provider documentation.
             </p>
           </div>

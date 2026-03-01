@@ -70,14 +70,14 @@ except ImportError:
     LANGGRAPH_AVAILABLE = False
     print("[WARN] LangGraph not installed. Run: pip install langgraph")
 
-# try:
-#     from langfuse import get_client as get_langfuse_client
-#     from langfuse.langchain import CallbackHandler as LangfuseCallbackHandler
-#     LANGFUSE_AVAILABLE = True
-# except Exception as e:
-LANGFUSE_AVAILABLE = False
-LangfuseCallbackHandler = None
-#    print(f"⚠️  Langfuse initialization error: {e}")
+try:
+    from langfuse import get_client as get_langfuse_client
+    from langfuse.langchain import CallbackHandler as LangfuseCallbackHandler
+    LANGFUSE_AVAILABLE = True
+except Exception as e:
+    LANGFUSE_AVAILABLE = False
+    LangfuseCallbackHandler = None
+    print(f"[WARN] Langfuse initialization error: {e}")
 
 
 # ─── Configuration ─────────────────────────────────────────────────────────────
@@ -116,12 +116,16 @@ call_counter = CallCounter()   # singleton shared across all requests
 langfuse = None
 if LANGFUSE_AVAILABLE and LANGFUSE_PUBLIC and LANGFUSE_SECRET:
     try:
-        langfuse = get_langfuse_client()
+        langfuse = get_langfuse_client(
+            public_key=LANGFUSE_PUBLIC,
+            secret_key=LANGFUSE_SECRET,
+            host=LANGFUSE_HOST
+        )
         if langfuse.auth_check():
             print("[OK] Langfuse connected - traces will appear in your dashboard.")
         else:
-            langfuse = None
             print("[WARN] Langfuse auth failed. Check LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY.")
+            langfuse = None
     except Exception as e:
         langfuse = None
         print(f"[WARN] Langfuse init error: {e}")
@@ -435,8 +439,26 @@ def generate_response(state: AgentState, llm=None, langfuse_handler=None) -> Age
             turn_content = f"{state['pricing_context']}\n\nUSER QUERY: {state['user_query']}"
         messages.append(HumanMessage(content=turn_content))
 
-        response = llm.invoke(messages, config=config)
-        return {**state, "assistant_response": response.content}
+        if langfuse:
+            try:
+                # Use current observation if available to capture the LLM call
+                with langfuse.start_as_current_observation(
+                    as_type="generation",
+                    name="llm-response",
+                    model=state.get("model_name", "gemini-2.5-flash"),
+                    input=messages
+                ) as generation:
+                    response = llm.invoke(messages, config=config)
+                    generation.update(output=response.content)
+                    return {**state, "assistant_response": response.content}
+            except Exception as e:
+                print(f"  [ERROR] Langfuse generation tracking failed: {e}")
+                # Fallback to standard invoke if observation fails
+                response = llm.invoke(messages, config=config)
+                return {**state, "assistant_response": response.content}
+        else:
+            response = llm.invoke(messages, config=config)
+            return {**state, "assistant_response": response.content}
 
     except Exception as e:
         print(f"  [ERROR] LLM error: {e}")
@@ -581,46 +603,81 @@ class PricingAIAssistant:
         conversation_history = self.get_conversation_context(session_id)
 
         # Langfuse trace wrapper
-        trace = None
         if langfuse:
-            trace = langfuse.trace(
-                name="pricing-assistant-query",
-                session_id=session_id,
-                input={"user_query": user_query},
-                metadata={"llm_call_count": call_counter.stats()},
-            )
+            try:
+                # Start a trace and link it to the session_id
+                # The user's snippet uses start_as_current_observation which is context-aware
+                with langfuse.start_as_current_observation(
+                    as_type="span",
+                    name="process-pricing-query",
+                    session_id=session_id,
+                    input={"user_query": user_query}
+                ) as span:
+                    if self.graph:
+                        initial_state: AgentState = {
+                            "session_id":           session_id,
+                            "user_query":           user_query,
+                            "conversation_history": conversation_history,
+                            "providers_to_fetch":   [],
+                            "pricing_context":      "",
+                            "source_urls":          [],
+                            "assistant_response":   "",
+                            "fetch_live":           fetch_live_pricing,
+                            "system_prompt":        system_prompt,
+                        }
 
-        if self.graph:
-            initial_state: AgentState = {
-                "session_id":           session_id,
-                "user_query":           user_query,
-                "conversation_history": conversation_history,
-                "providers_to_fetch":   [],
-                "pricing_context":      "",
-                "source_urls":          [],
-                "assistant_response":   "",
-                "fetch_live":           fetch_live_pricing,
-                "system_prompt":        system_prompt,
-            }
-
-            final_state = self.graph.invoke(initial_state)
-            assistant_response = final_state["assistant_response"]
+                        final_state = self.graph.invoke(initial_state)
+                        assistant_response = final_state["assistant_response"]
+                    else:
+                        # LangGraph not available - bare fallback
+                        call_counter.increment(session_id)
+                        assistant_response = _fallback_response(user_query)
+                    
+                    span.update(output={"assistant_response": assistant_response})
+                
+                langfuse.flush()
+            except Exception as e:
+                print(f"  [ERROR] Langfuse tracing failed: {e}")
+                # Fallback to standard execution
+                if self.graph:
+                    initial_state: AgentState = {
+                        "session_id":           session_id,
+                        "user_query":           user_query,
+                        "conversation_history": conversation_history,
+                        "providers_to_fetch":   [],
+                        "pricing_context":      "",
+                        "source_urls":          [],
+                        "assistant_response":   "",
+                        "fetch_live":           fetch_live_pricing,
+                        "system_prompt":        system_prompt,
+                    }
+                    final_state = self.graph.invoke(initial_state)
+                    assistant_response = final_state["assistant_response"]
+                else:
+                    call_counter.increment(session_id)
+                    assistant_response = _fallback_response(user_query)
         else:
-            # LangGraph not available — bare fallback
-            call_counter.increment(session_id)
-            assistant_response = _fallback_response(user_query)
+            # Bare fallback when Langfuse is not available
+            if self.graph:
+                initial_state: AgentState = {
+                    "session_id":           session_id,
+                    "user_query":           user_query,
+                    "conversation_history": conversation_history,
+                    "providers_to_fetch":   [],
+                    "pricing_context":      "",
+                    "source_urls":          [],
+                    "assistant_response":   "",
+                    "fetch_live":           fetch_live_pricing,
+                    "system_prompt":        system_prompt,
+                }
+
+                final_state = self.graph.invoke(initial_state)
+                assistant_response = final_state["assistant_response"]
+            else:
+                call_counter.increment(session_id)
+                assistant_response = _fallback_response(user_query)
 
         self.add_message(session_id, "assistant", assistant_response)
-
-        if trace:
-            trace.update(
-                output={"assistant_response": assistant_response},
-                metadata={
-                    "llm_call_count": call_counter.stats(),
-                    "session_total_calls": call_counter.per_session.get(session_id, 0),
-                },
-            )
-            langfuse.flush()
 
         print(f"\n[STATS] LLM Call Stats: {json.dumps(call_counter.stats(), indent=2)}")
 
