@@ -5,6 +5,15 @@ export interface ModelPricing {
   outputPrice: number;
   cachedInputPrice?: number;
   description?: string;
+  pricingType?: 'standard' | 'batch';
+  batchInputPrice?: number;
+  batchOutputPrice?: number;
+}
+
+export interface CustomPricingInput {
+  inputPricePerMillion: number;
+  outputPricePerMillion: number;
+  name: string;
 }
 
 export interface PricingResult {
@@ -132,35 +141,90 @@ export const MODELS: Record<string, ModelPricing[]> = {
       provider: "Google",
       inputPrice: 1.25,
       outputPrice: 10.0,
-      description: "Advanced Google Gemini reasoning model, 1M+ context",
+      batchInputPrice: 0.625,
+      batchOutputPrice: 5.0,
+      pricingType: 'standard',
+      description: "Advanced Google Gemini reasoning model, 1M+ context (Standard API)",
+    },
+    {
+      name: "Gemini 2.5 Pro (Batch)",
+      provider: "Google",
+      inputPrice: 0.625,
+      outputPrice: 5.0,
+      pricingType: 'batch',
+      description: "Batch API pricing - 50% discount, async processing",
     },
     {
       name: "Gemini 2.5 Flash",
       provider: "Google",
       inputPrice: 0.30,
       outputPrice: 2.50,
-      description: "Balanced cost and performance Gemini model",
+      batchInputPrice: 0.15,
+      batchOutputPrice: 1.25,
+      pricingType: 'standard',
+      description: "Balanced cost and performance Gemini model (Standard API)",
+    },
+    {
+      name: "Gemini 2.5 Flash (Batch)",
+      provider: "Google",
+      inputPrice: 0.15,
+      outputPrice: 1.25,
+      pricingType: 'batch',
+      description: "Batch API pricing - 50% discount, async processing",
     },
     {
       name: "Gemini 2.5 Flash-Lite",
       provider: "Google",
       inputPrice: 0.10,
       outputPrice: 0.40,
-      description: "Most cost-effective Gemini Flash variant",
+      batchInputPrice: 0.05,
+      batchOutputPrice: 0.20,
+      pricingType: 'standard',
+      description: "Most cost-effective Gemini Flash variant (Standard API)",
+    },
+    {
+      name: "Gemini 2.5 Flash-Lite (Batch)",
+      provider: "Google",
+      inputPrice: 0.05,
+      outputPrice: 0.20,
+      pricingType: 'batch',
+      description: "Batch API pricing - 50% discount, async processing",
     },
     {
       name: "Gemini 1.5 Flash",
       provider: "Google",
       inputPrice: 0.075,
       outputPrice: 0.30,
-      description: "Very low-cost high-efficiency model",
+      batchInputPrice: 0.0375,
+      batchOutputPrice: 0.15,
+      pricingType: 'standard',
+      description: "Very low-cost high-efficiency model (Standard API)",
+    },
+    {
+      name: "Gemini 1.5 Flash (Batch)",
+      provider: "Google",
+      inputPrice: 0.0375,
+      outputPrice: 0.15,
+      pricingType: 'batch',
+      description: "Batch API pricing - 50% discount, async processing",
     },
     {
       name: "Gemini 1.5 Flash-8B",
       provider: "Google",
       inputPrice: 0.0375,
       outputPrice: 0.15,
-      description: "Ultra-low cost Flash-8B tier",
+      batchInputPrice: 0.01875,
+      batchOutputPrice: 0.075,
+      pricingType: 'standard',
+      description: "Ultra-low cost Flash-8B tier (Standard API)",
+    },
+    {
+      name: "Gemini 1.5 Flash-8B (Batch)",
+      provider: "Google",
+      inputPrice: 0.01875,
+      outputPrice: 0.075,
+      pricingType: 'batch',
+      description: "Batch API pricing - 50% discount, async processing",
     },
   ],
 
@@ -225,4 +289,24 @@ export function findModelsWithinBudget(
     const result = calculateCost(model, avgInputTokens, avgOutputTokens);
     return result.totalCost * estimatedCalls <= monthlyBudget;
   });
+}
+
+// Custom pricing calculation for user-defined prices
+export function calculateCustomCost(
+  inputPricePerMillion: number,
+  outputPricePerMillion: number,
+  inputTokens: number,
+  outputTokens: number
+): PricingResult {
+  const inputCost = (inputTokens / 1_000_000) * inputPricePerMillion;
+  const outputCost = (outputTokens / 1_000_000) * outputPricePerMillion;
+
+  return {
+    inputCost,
+    outputCost,
+    totalCost: inputCost + outputCost,
+    inputTokens,
+    outputTokens,
+    model: 'Custom Pricing',
+  };
 }

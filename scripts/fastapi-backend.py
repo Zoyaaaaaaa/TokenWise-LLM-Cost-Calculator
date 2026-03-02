@@ -384,6 +384,7 @@ class PricingVerifyRequest(BaseModel):
     provider: str
     input_price: float
     output_price: float
+    pricing_type: Optional[str] = "standard"  # "standard" or "batch"
 
 class PricingVerifyResponse(BaseModel):
     verified: bool
@@ -393,6 +394,7 @@ class PricingVerifyResponse(BaseModel):
     message: str
     source_url: str
     last_updated: Optional[str]
+    pricing_type: Optional[str] = "standard"
 
 
 @app.post("/api/verify-pricing", response_model=PricingVerifyResponse)
@@ -402,6 +404,11 @@ async def verify_pricing(request: PricingVerifyRequest):
     Uses Tavily search to fetch live pricing data.
     """
     try:
+        # Determine pricing type from model name or request
+        pricing_type = request.pricing_type or "standard"
+        if "batch" in request.model_name.lower():
+            pricing_type = "batch"
+        
         # Map provider to search configuration
         provider_searches = {
             "openai": {
@@ -410,12 +417,12 @@ async def verify_pricing(request: PricingVerifyRequest):
                 "url": "https://openai.com/api/pricing/"
             },
             "google": {
-                "query": f"Google Gemini {request.model_name} pricing per 1M tokens official",
+                "query": f"Google Gemini {request.model_name} pricing per 1M tokens official {'batch' if pricing_type == 'batch' else ''}",
                 "domain": "google.dev",
                 "url": "https://ai.google.dev/gemini-api/docs/pricing"
             },
             "gemini": {
-                "query": f"Google Gemini {request.model_name} pricing per 1M tokens official",
+                "query": f"Google Gemini {request.model_name} pricing per 1M tokens official {'batch' if pricing_type == 'batch' else ''}",
                 "domain": "google.dev",
                 "url": "https://ai.google.dev/gemini-api/docs/pricing"
             },
@@ -440,7 +447,8 @@ async def verify_pricing(request: PricingVerifyRequest):
                 status="unknown",
                 message=f"Provider '{request.provider}' not supported for verification.",
                 source_url="",
-                last_updated=None
+                last_updated=None,
+                pricing_type=pricing_type
             )
         
         search_config = provider_searches[provider_key]
@@ -454,7 +462,8 @@ async def verify_pricing(request: PricingVerifyRequest):
                 status="error",
                 message="Tavily API key not configured. Cannot verify pricing.",
                 source_url=search_config["url"],
-                last_updated=None
+                last_updated=None,
+                pricing_type=pricing_type
             )
         
         # Search for current pricing
@@ -477,7 +486,8 @@ async def verify_pricing(request: PricingVerifyRequest):
                 status="unknown",
                 message="Could not fetch current pricing from official sources.",
                 source_url=search_config["url"],
-                last_updated=datetime.datetime.now().isoformat()
+                last_updated=datetime.datetime.now().isoformat(),
+                pricing_type=pricing_type
             )
         
         # Use Gemini to extract pricing from search results
@@ -489,7 +499,8 @@ async def verify_pricing(request: PricingVerifyRequest):
                 status="error",
                 message="AI assistant not configured. Cannot verify pricing.",
                 source_url=search_config["url"],
-                last_updated=None
+                last_updated=None,
+                pricing_type=pricing_type
             )
         
         # Build context from search results
@@ -547,7 +558,8 @@ Prices should be per 1M tokens in USD. If pricing is not found, set found to fal
                 status="unknown",
                 message=f"Could not find current pricing for {request.model_name} in search results.",
                 source_url=results[0].get("url", search_config["url"]),
-                last_updated=datetime.datetime.now().isoformat()
+                last_updated=datetime.datetime.now().isoformat(),
+                pricing_type=pricing_type
             )
         
         current_input = pricing_data.get("input_price")
@@ -565,9 +577,10 @@ Prices should be per 1M tokens in USD. If pricing is not found, set found to fal
                 current_input_price=current_input,
                 current_output_price=current_output,
                 status="verified",
-                message=f"✓ Pricing verified! Current rates match your data.",
+                message=f"✓ {pricing_type.capitalize()} pricing verified! Current rates match your data.",
                 source_url=results[0].get("url", search_config["url"]),
-                last_updated=datetime.datetime.now().isoformat()
+                last_updated=datetime.datetime.now().isoformat(),
+                pricing_type=pricing_type
             )
         else:
             differences = []
@@ -581,9 +594,10 @@ Prices should be per 1M tokens in USD. If pricing is not found, set found to fal
                 current_input_price=current_input,
                 current_output_price=current_output,
                 status="outdated",
-                message=f"⚠ Pricing may be outdated. Differences found: {', '.join(differences)}",
+                message=f"⚠ {pricing_type.capitalize()} pricing may be outdated. Differences found: {', '.join(differences)}",
                 source_url=results[0].get("url", search_config["url"]),
-                last_updated=datetime.datetime.now().isoformat()
+                last_updated=datetime.datetime.now().isoformat(),
+                pricing_type=pricing_type
             )
         
     except Exception as exc:
@@ -595,7 +609,8 @@ Prices should be per 1M tokens in USD. If pricing is not found, set found to fal
             status="error",
             message=f"Error verifying pricing: {str(exc)}",
             source_url="",
-            last_updated=None
+            last_updated=None,
+            pricing_type=pricing_type
         )
 
 

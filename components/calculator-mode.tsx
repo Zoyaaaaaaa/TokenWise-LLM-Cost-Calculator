@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MODELS, calculateCost, convertToINR, formatCurrency, type ModelPricing, type Currency } from '@/lib/pricing-data';
+import { MODELS, calculateCost, convertToINR, formatCurrency, USD_TO_INR_RATE, type ModelPricing, type Currency } from '@/lib/pricing-data';
 import { PricingVerification } from './pricing-verification';
 import { Calculator, ArrowRight, Info, DollarSign, Shield } from 'lucide-react';
 
@@ -173,32 +173,38 @@ export function CalculatorMode() {
 
         {/* ── Right: Results ── */}
         <div>
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Cost Breakdown
             </h2>
-            {/* Currency Toggle */}
-            <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-1">
-              <button
-                onClick={() => setCurrency('USD')}
-                className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
-                  currency === 'USD'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                USD ($)
-              </button>
-              <button
-                onClick={() => setCurrency('INR')}
-                className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
-                  currency === 'INR'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                INR (₹)
-              </button>
+            <div className="flex items-center gap-2">
+              {/* Exchange Rate Badge */}
+              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                1 USD = {USD_TO_INR_RATE} INR
+              </span>
+              {/* Currency Toggle */}
+              <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-1">
+                <button
+                  onClick={() => setCurrency('USD')}
+                  className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
+                    currency === 'USD'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  USD ($)
+                </button>
+                <button
+                  onClick={() => setCurrency('INR')}
+                  className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
+                    currency === 'INR'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  INR (₹)
+                </button>
+              </div>
             </div>
           </div>
 

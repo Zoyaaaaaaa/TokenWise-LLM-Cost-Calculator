@@ -13,6 +13,7 @@ interface VerificationResult {
   message: string;
   source_url: string;
   last_updated: string | null;
+  pricing_type: 'standard' | 'batch';
 }
 
 interface PricingVerificationProps {
@@ -40,6 +41,7 @@ export function PricingVerification({ model }: PricingVerificationProps) {
           provider: model.provider,
           input_price: model.inputPrice,
           output_price: model.outputPrice,
+          pricing_type: model.pricingType || 'standard',
         }),
       });
 
@@ -119,6 +121,17 @@ export function PricingVerification({ model }: PricingVerificationProps) {
           <div className="flex items-center gap-2">
             {getStatusIcon()}
             <span className="font-medium">{result.message}</span>
+          </div>
+          
+          {/* Pricing Type Badge */}
+          <div className="pl-6">
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+              result.pricing_type === 'batch' 
+                ? 'bg-purple-100 text-purple-700' 
+                : 'bg-blue-100 text-blue-700'
+            }`}>
+              {result.pricing_type === 'batch' ? 'Batch API' : 'Standard API'}
+            </span>
           </div>
           
           {(result.current_input_price !== null || result.current_output_price !== null) && (

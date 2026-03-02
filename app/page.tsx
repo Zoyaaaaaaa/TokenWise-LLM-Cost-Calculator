@@ -6,7 +6,8 @@ import { CalculatorMode } from '@/components/calculator-mode';
 import { ComparisonMode } from '@/components/comparison-mode';
 import { ForecastingMode } from '@/components/forecasting-mode';
 import { AssistantMode } from '@/components/assistant-mode';
-import { getAllModels, calculateCost } from '@/lib/pricing-data';
+import { CustomCalculator } from '@/components/custom-calculator';
+import { getAllModels, calculateCost, USD_TO_INR_RATE } from '@/lib/pricing-data';
 import {
   Calculator,
   BarChart3,
@@ -20,6 +21,7 @@ import {
   Target,
   Archive,
   Package,
+  Settings2,
 } from 'lucide-react';
 
 export default function Home() {
@@ -34,6 +36,7 @@ export default function Home() {
 
   const tabs = [
     { value: 'calculator', label: 'Calculator', icon: Calculator },
+    { value: 'custom', label: 'Custom', icon: Settings2 },
     { value: 'comparison', label: 'Comparison', icon: BarChart3 },
     { value: 'forecasting', label: 'Forecasting', icon: TrendingUp },
     { value: 'assistant', label: 'AI Assistant', icon: Bot },
@@ -181,6 +184,9 @@ export default function Home() {
               <TabsContent value="calculator" className="mt-0 animate-fade-in">
                 <CalculatorMode />
               </TabsContent>
+              <TabsContent value="custom" className="mt-0 animate-fade-in">
+                <CustomCalculator />
+              </TabsContent>
               <TabsContent value="comparison" className="mt-0 animate-fade-in">
                 <ComparisonMode />
               </TabsContent>
@@ -279,9 +285,16 @@ export default function Home() {
             <p className="text-[10px] sm:text-xs text-muted-foreground">
               © 2026 LLM Pricing Calculator. Built with Next.js & React.
             </p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">
-              Always verify pricing with official provider documentation.
-            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3">
+              <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                  1 USD = {USD_TO_INR_RATE} INR
+                </span>
+              </p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
+                Always verify pricing with official provider documentation.
+              </p>
+            </div>
           </div>
         </div>
       </footer>
