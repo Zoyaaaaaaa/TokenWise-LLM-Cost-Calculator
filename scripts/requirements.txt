@@ -1,28 +1,39 @@
 # LLM Pricing AI Assistant - Requirements
 # ==========================================
-# NOTE: Requires Python 3.8 or higher
+# NOTE: Requires Python 3.11 or higher (LangGraph + Langfuse requirement)
 
 # Core Web API
 fastapi>=0.100.0
 uvicorn>=0.23.0
 
-# MLflow for experiment tracking
-mlflow>=2.9.0
-
 # Tavily Search API
 tavily-python>=0.3.0
 
-# Google Gen AI (LLM) - New SDK
+# ── LangGraph agent framework ──────────────────────────────────────────────────
+langgraph>=0.2.0
+langchain-core>=0.3.0
+langchain-google-genai>=2.0.0   # LangChain wrapper for Gemini
+langgraph-checkpoint-postgres>=2.0.0
+psycopg2-binary>=2.9.0
+psycopg2-pool>=1.0.0
+
+# ── Langfuse observability (LLM call tracking) ─────────────────────────────────
+langfuse>=2.0.0
+
+# ── Google Gen AI (direct SDK — kept for fallback) ─────────────────────────────
 google-genai>=0.2.0
 
 # Data processing
 python-dotenv>=1.0.0
-
-# Optional: For enhanced features
-requests>=2.31.0
 pydantic>=2.0.0
+requests>=2.31.0
 
 # Development dependencies (optional)
 pytest>=7.4.0
 black>=23.0.0
 flake8>=6.0.0
+
+# ── Supabase (pure Python, no C++ build tools needed) ─────────────────────────
+httpx>=0.28.1          # used by fastapi-backend.py for Supabase REST calls
+gotrue>=2.12.0         # JWT / auth helpers
+

@@ -11,8 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MODELS, calculateCost, type ModelPricing } from '@/lib/pricing-data';
-import { Calculator, ArrowRight, Info } from 'lucide-react';
+import { MODELS, calculateCost, convertToINR, formatCurrency, USD_TO_INR_RATE, type ModelPricing, type Currency } from '@/lib/pricing-data';
+import { PricingVerification } from './pricing-verification';
+import { Calculator, ArrowRight, Info, DollarSign, Shield } from 'lucide-react';
 
 export function CalculatorMode() {
   const [provider, setProvider] = useState<string>('openai');
@@ -21,6 +22,7 @@ export function CalculatorMode() {
   const [outputTokens, setOutputTokens] = useState<number>(2000);
   const [useCached, setUseCached] = useState<boolean>(false);
   const [result, setResult] = useState<any | null>(null);
+  const [currency, setCurrency] = useState<Currency>('USD');
 
   const models = MODELS[provider] || [];
 
@@ -46,7 +48,6 @@ export function CalculatorMode() {
     { value: 'openai', label: 'OpenAI' },
     { value: 'gemini', label: 'Google Gemini' },
     { value: 'anthropic', label: 'Anthropic' },
-    { value: 'claude', label: 'Claude' },
   ];
 
   return (
@@ -62,9 +63,9 @@ export function CalculatorMode() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:gap-8 lg:grid-cols-2">
         {/* ── Left: Inputs ── */}
-        <div className="space-y-5">
+        <div className="space-y-4 sm:space-y-5">
           {/* Provider */}
           <div className="space-y-1.5">
             <Label htmlFor="provider" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -110,7 +111,7 @@ export function CalculatorMode() {
           </div>
 
           {/* Token inputs */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="inputTokens" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Input Tokens
@@ -172,25 +173,62 @@ export function CalculatorMode() {
 
         {/* ── Right: Results ── */}
         <div>
-          <h2 className="mb-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Cost Breakdown
-          </h2>
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Cost Breakdown
+            </h2>
+            <div className="flex items-center gap-2">
+              {/* Exchange Rate Badge */}
+              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                1 USD = {USD_TO_INR_RATE} INR
+              </span>
+              {/* Currency Toggle */}
+              <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-1">
+                <button
+                  onClick={() => setCurrency('USD')}
+                  className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
+                    currency === 'USD'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  USD ($)
+                </button>
+                <button
+                  onClick={() => setCurrency('INR')}
+                  className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
+                    currency === 'INR'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  INR (₹)
+                </button>
+              </div>
+            </div>
+          </div>
 
           {result ? (
             <div className="space-y-3 animate-fade-in-up">
               {/* Cost cards */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
                 <div className="rounded-xl border border-border/60 bg-card p-4">
                   <p className="text-xs text-muted-foreground">Input Cost</p>
                   <p className="mt-1 text-2xl font-bold text-foreground">
-                    ${result.inputCost.toFixed(4)}
+                    {formatCurrency(currency === 'INR' ? convertToINR(result.inputCost) : result.inputCost, currency)}
                   </p>
+                  {currency === 'INR' && (
+                    <p className="text-[10px] text-muted-foreground">${result.inputCost.toFixed(4)}</p>
+                  )}
                 </div>
                 <div className="rounded-xl border border-border/60 bg-card p-4">
                   <p className="text-xs text-muted-foreground">Output Cost</p>
                   <p className="mt-1 text-2xl font-bold text-foreground">
-                    ${result.outputCost.toFixed(4)}
+                    {formatCurrency(currency === 'INR' ? convertToINR(result.outputCost) : result.outputCost, currency)}
                   </p>
+                  {currency === 'INR' && (
+                    <p className="text-[10px] text-muted-foreground">${result.outputCost.toFixed(4)}</p>
+                  )}
                 </div>
               </div>
 
@@ -198,8 +236,11 @@ export function CalculatorMode() {
               <div className="rounded-xl border border-primary/25 bg-primary/5 p-5">
                 <p className="text-xs font-medium text-primary/70">Total Cost</p>
                 <p className="mt-1 text-4xl font-bold text-primary">
-                  ${result.totalCost.toFixed(4)}
+                  {formatCurrency(currency === 'INR' ? convertToINR(result.totalCost) : result.totalCost, currency)}
                 </p>
+                {currency === 'INR' && (
+                  <p className="text-xs text-muted-foreground">${result.totalCost.toFixed(4)} USD</p>
+                )}
                 <p className="mt-1 text-xs text-muted-foreground">per API request</p>
               </div>
 
@@ -216,6 +257,17 @@ export function CalculatorMode() {
                   </div>
                 ))}
               </div>
+
+              {/* Pricing Verification */}
+              {selectedModel && (
+                <div className="rounded-xl border border-border/60 bg-card p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Shield className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-medium">Pricing Verification</h3>
+                  </div>
+                  <PricingVerification model={selectedModel} />
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/20 p-12 text-center">

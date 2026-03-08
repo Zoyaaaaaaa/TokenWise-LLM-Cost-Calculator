@@ -4,13 +4,14 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { compareModels, type PricingResult } from '@/lib/pricing-data';
+import { compareModels, convertToINR, formatCurrency, formatCurrencyCompact, type PricingResult, type Currency } from '@/lib/pricing-data';
 import { BarChart3, ArrowRight, Trophy, TrendingDown } from 'lucide-react';
 
 export function ComparisonMode() {
   const [inputTokens, setInputTokens] = useState<number>(4000);
   const [outputTokens, setOutputTokens] = useState<number>(2000);
   const [results, setResults] = useState<PricingResult[] | null>(null);
+  const [currency, setCurrency] = useState<Currency>('USD');
 
   const handleCompare = () => {
     const comparisons = compareModels(inputTokens, outputTokens);
@@ -23,19 +24,44 @@ export function ComparisonMode() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <BarChart3 className="h-4.5 w-4.5 text-primary" size={18} />
-        <div>
-          <h2 className="text-base font-semibold text-foreground">Model Comparison</h2>
-          <p className="text-xs text-muted-foreground">
-            Compare costs across all available models for a given token count.
-          </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-4.5 w-4.5 text-primary flex-shrink-0" size={18} />
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-foreground">Model Comparison</h2>
+            <p className="text-xs text-muted-foreground">
+              Compare costs across all available models for a given token count.
+            </p>
+          </div>
+        </div>
+        {/* Currency Toggle */}
+        <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-1 self-start sm:self-auto">
+          <button
+            onClick={() => setCurrency('USD')}
+            className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
+              currency === 'USD'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            USD ($)
+          </button>
+          <button
+            onClick={() => setCurrency('INR')}
+            className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
+              currency === 'INR'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            INR (₹)
+          </button>
         </div>
       </div>
 
       {/* Input row */}
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="space-y-1.5 flex-1 min-w-[140px]">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 sm:gap-4">
+        <div className="space-y-1.5 flex-1 min-w-0 sm:min-w-[140px]">
           <Label htmlFor="compInputTokens" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Input Tokens
           </Label>
@@ -45,10 +71,10 @@ export function ComparisonMode() {
             value={inputTokens}
             onChange={(e) => setInputTokens(Number(e.target.value))}
             min="0"
-            className="rounded-xl border-border/60 bg-card h-10"
+            className="rounded-xl border-border/60 bg-card h-10 w-full"
           />
         </div>
-        <div className="space-y-1.5 flex-1 min-w-[140px]">
+        <div className="space-y-1.5 flex-1 min-w-0 sm:min-w-[140px]">
           <Label htmlFor="compOutputTokens" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Output Tokens
           </Label>
@@ -58,12 +84,12 @@ export function ComparisonMode() {
             value={outputTokens}
             onChange={(e) => setOutputTokens(Number(e.target.value))}
             min="0"
-            className="rounded-xl border-border/60 bg-card h-10"
+            className="rounded-xl border-border/60 bg-card h-10 w-full"
           />
         </div>
         <Button
           onClick={handleCompare}
-          className="rounded-xl h-10 gap-2 font-medium shadow-sm flex-shrink-0"
+          className="rounded-xl h-10 gap-2 font-medium shadow-sm flex-shrink-0 w-full sm:w-auto"
         >
           Compare All Models
           <ArrowRight size={15} />
@@ -93,7 +119,7 @@ export function ComparisonMode() {
                   style={{ width: `${barWidth}%` }}
                 />
 
-                <div className="relative flex items-center justify-between gap-4">
+                <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
                   <div className="flex items-center gap-3 min-w-0">
                     {/* Rank */}
                     <span
@@ -105,7 +131,7 @@ export function ComparisonMode() {
                       {idx + 1}
                     </span>
 
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-sm text-foreground truncate">
                           {result.model}
@@ -124,14 +150,15 @@ export function ComparisonMode() {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Input: ${result.inputCost.toFixed(4)} · Output: ${result.outputCost.toFixed(4)}
+                        Input: {formatCurrency(currency === 'INR' ? convertToINR(result.inputCost) : result.inputCost, currency)} · 
+                        Output: {formatCurrency(currency === 'INR' ? convertToINR(result.outputCost) : result.outputCost, currency)}
                       </p>
                     </div>
                   </div>
-
-                  <div className="text-right flex-shrink-0">
-                    <p className={`text-xl font-bold ${isCheapest ? 'text-emerald-600' : 'text-foreground'}`}>
-                      ${result.totalCost.toFixed(4)}
+                  
+                  <div className="text-left sm:text-right flex-shrink-0 pl-9 sm:pl-0">
+                    <p className={`text-lg sm:text-xl font-bold ${isCheapest ? 'text-emerald-600' : 'text-foreground'}`}>
+                      {formatCurrency(currency === 'INR' ? convertToINR(result.totalCost) : result.totalCost, currency)}
                     </p>
                     <p className="text-[10px] text-muted-foreground">per request</p>
                   </div>
