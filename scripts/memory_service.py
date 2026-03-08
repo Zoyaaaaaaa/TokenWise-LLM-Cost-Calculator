@@ -9,20 +9,17 @@ Provides:
 
 import os
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Optional
 
 from dotenv import load_dotenv
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# ─── Connection URL ──────────────────────────────────────────────────────────
-# Supabase → Project Settings → Database → URI  (use the "Session pooler" one
-# which ends in ?pgbouncer=true if you're on the shared plan, otherwise the
-# direct connection works fine here since we're using a small pool).
+# ─── Connection URL ───────────────────────────────────────────────────────────
 POSTGRES_URL = os.getenv("SUPABASE_DB_URL", "")
 
-# ─── Optional imports with graceful degradation ───────────────────────────────
+# ─── Optional imports with graceful degradation ──────────────────────────────
 try:
     from psycopg.rows import dict_row
     from psycopg_pool import ConnectionPool
@@ -59,14 +56,27 @@ def get_connection_pool() -> Optional["ConnectionPool"]:
 
     try:
         logger.info("Creating PostgreSQL connection pool…")
+
+        # ✅ FIX: Pool-level params (max_lifetime, max_idle, etc.) go here as
+        #         direct kwargs — NOT inside the DSN string or `kwargs` dict.
+        #         The `kwargs` dict is only for psycopg connection options.
         _connection_pool = ConnectionPool(
             conninfo=POSTGRES_URL,
             min_size=1,
             max_size=10,
-            kwargs={"autocommit": True, "row_factory": dict_row},
+            open=True,                      # open pool immediately
+            kwargs={
+                "autocommit": True,
+                "row_factory": dict_row,
+                "sslmode": "require",       # required for Supabase
+            },
+            # Pool-level params belong here (not in conninfo/DSN):
+            max_waiting=10,
+            reconnect_timeout=5.0,
         )
         logger.info("PostgreSQL connection pool created.")
         return _connection_pool
+
     except Exception as exc:
         logger.error(f"Failed to create connection pool: {exc}")
         return None
@@ -92,7 +102,7 @@ class MemoryService:
         if pool and POSTGRES_SAVER_AVAILABLE:
             try:
                 self.checkpointer = PostgresSaver(pool)
-                self.checkpointer.setup()          # creates tables if missing
+                self.checkpointer.setup()   # creates tables if missing
                 print("[OK] LangGraph checkpointer: PostgreSQL (Supabase)")
                 return
             except Exception as exc:

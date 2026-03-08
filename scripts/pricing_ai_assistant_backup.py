@@ -88,10 +88,6 @@ LANGFUSE_PUBLIC   = os.getenv("LANGFUSE_PUBLIC_KEY", "")
 LANGFUSE_SECRET   = os.getenv("LANGFUSE_SECRET_KEY", "")
 LANGFUSE_HOST     = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
 
-# ─── Supabase PostgreSQL for LangGraph Checkpointer ────────────────────────────
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL", "")  # Direct connection string
-
 tavily_client = TavilyClient(api_key=TAVILY_API_KEY) if (TAVILY_AVAILABLE and TAVILY_API_KEY) else None
 
 # ─── LLM Call Counter (in-memory, survives a single process lifetime) ─────────
@@ -542,65 +538,6 @@ class PricingAIAssistant:
         llm              = self.llm
         langfuse_handler = LangfuseCallbackHandler() if (LANGFUSE_AVAILABLE and langfuse) else None
 
-        # ── Try to initialize PostgreSQL checkpointer with Supabase ──────────
-        checkpointer = None
-        try:
-            from langgraph.checkpoint.postgres import PostgresSaver
-            from psycopg_pool import ConnectionPool          # psycopg v3, NOT psycopg2
-            from psycopg.rows import dict_row
-
-            # Resolve DB URL
-            db_url = SUPABASE_DB_URL
-            if not db_url and SUPABASE_URL:
-                project_ref = (
-                    SUPABASE_URL.replace("https://", "").replace(".supabase.co", "")
-                )
-                db_password = os.getenv("SUPABASE_DB_PASSWORD", "")
-                db_url = (
-                    f"postgresql://postgres.{project_ref}:{db_password}"
-                    f"@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres"
-                )
-
-            if not db_url:
-                print("[WARN] No Supabase DB URL configured, using in-memory checkpointer")
-                raise ValueError("No DB URL")
-
-            print("[INFO] Initializing PostgreSQL checkpointer with Supabase...")
-
-            # ✅ FIX 1: Use psycopg (v3) ConnectionPool — not psycopg2_pool.
-            # ✅ FIX 2: max_lifetime and other pool params are direct kwargs on
-            #           ConnectionPool(), never inside the DSN string.
-            # ✅ FIX 3: sslmode goes in `kwargs` (psycopg connection options),
-            #           not in the DSN, to avoid duplicate/conflict errors.
-            pool = ConnectionPool(
-                conninfo=db_url,
-                min_size=1,
-                max_size=5,
-                open=True,
-                kwargs={
-                    "autocommit": True,
-                    "row_factory": dict_row,
-                    "sslmode": "require",
-                    "connect_timeout": 10,
-                },
-            )
-
-            # Test the pool is actually working
-            print("[INFO] Testing database connection...")
-            with pool.connection() as conn:
-                conn.execute("SELECT 1")
-            print("[OK] Database connection test successful")
-
-            checkpointer = PostgresSaver(pool)
-            checkpointer.setup()        # creates checkpoint tables if missing
-            print("[OK] PostgreSQL checkpointer initialized with Supabase")
-
-        except Exception as e:
-            print(f"[WARN] PostgreSQL checkpointer setup failed: {e}")
-            print("[WARN] Using in-memory checkpointer (fallback)")
-            checkpointer = None
-
-        # ── Build graph ───────────────────────────────────────────────────────
         builder = StateGraph(AgentState)
 
         builder.add_node("detect_providers", detect_providers)
@@ -615,7 +552,8 @@ class PricingAIAssistant:
         builder.add_edge("fetch_pricing",    "generate_response")
         builder.add_edge("generate_response", END)
 
-        return builder.compile(checkpointer=checkpointer) if checkpointer else builder.compile()
+        return builder.compile()
+
     # ── Session management ─────────────────────────────────────────────────────
 
     def create_session(self, session_id: Optional[str] = None) -> str:
