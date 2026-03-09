@@ -688,7 +688,11 @@ class PricingAIAssistant:
                             "system_prompt":        system_prompt,
                         }
 
-                        final_state = self.graph.invoke(initial_state)
+                        # Invoke with config containing thread_id for checkpointer
+                        final_state = self.graph.invoke(
+                           initial_state,
+                            config={"configurable": {"thread_id": session_id}}
+                        )
                         assistant_response = final_state["assistant_response"]
                     else:
                         # LangGraph not available - bare fallback
@@ -713,7 +717,11 @@ class PricingAIAssistant:
                         "fetch_live":           fetch_live_pricing,
                         "system_prompt":        system_prompt,
                     }
-                    final_state = self.graph.invoke(initial_state)
+                    # Invoke with config containing thread_id for checkpointer
+                    final_state = self.graph.invoke(
+                       initial_state,
+                        config={"configurable": {"thread_id": session_id}}
+                    )
                     assistant_response = final_state["assistant_response"]
                 else:
                     call_counter.increment(session_id)
@@ -733,7 +741,11 @@ class PricingAIAssistant:
                     "system_prompt":        system_prompt,
                 }
 
-                final_state = self.graph.invoke(initial_state)
+                # Invoke with config containing thread_id for checkpointer
+                final_state = self.graph.invoke(
+                   initial_state,
+                    config={"configurable": {"thread_id": session_id}}
+                )
                 assistant_response = final_state["assistant_response"]
             else:
                 call_counter.increment(session_id)
