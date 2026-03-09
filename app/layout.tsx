@@ -20,10 +20,15 @@ export const metadata: Metadata = {
     'AI API cost comparison', 'GPT-4 pricing', 'Claude pricing', 'Gemini Pro pricing',
   ],
   authors: [{ name: 'LLM Pricing Calculator' }],
-  metadataBase: new URL('https://llm-pricing-calculator.vercel.app'),
+  metadataBase: new URL('https://token-wise-llm-cost-calculator.vercel.app'),
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon-16x16.png',
+    apple: '/apple-touch-icon.png',
+  },
   openGraph: {
     type: 'website', locale: 'en_US',
-    url: 'https://llm-pricing-calculator.vercel.app',
+    url: 'https://token-wise-llm-cost-calculator.vercel.app',
     title: 'LLM Pricing Calculator — Compare AI Model Costs in Real Time',
     description: 'Compare and calculate LLM API costs across OpenAI, Google Gemini, and Anthropic.',
     siteName: 'LLM Pricing Calculator',
@@ -35,7 +40,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
-        <link rel="canonical" href="https://llm-pricing-calculator.vercel.app" />
+        <link rel="canonical" href="https://token-wise-llm-cost-calculator.vercel.app" />
         <meta name="theme-color" content="#0f172a" />
       </head>
       <body className="font-sans antialiased">
