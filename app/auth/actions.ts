@@ -20,6 +20,9 @@ export async function signUp(formData: FormData) {
         return { error: error.message };
     }
 
+    // Attempt log in immediately after sign up so user doesn't have to
+    await supabase.auth.signInWithPassword({ email, password });
+
     revalidatePath('/', 'layout');
     redirect('/');
 }
