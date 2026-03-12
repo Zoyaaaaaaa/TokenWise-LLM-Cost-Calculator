@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CalculatorMode } from '@/components/calculator-mode';
 import { ComparisonMode } from '@/components/comparison-mode';
@@ -22,9 +24,13 @@ import {
   Archive,
   Package,
   Settings2,
+  User,
+  LogOut,
+  LogIn,
 } from 'lucide-react';
 
 export default function Home() {
+  const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState('calculator');
 
   const allModels = getAllModels();
@@ -109,11 +115,42 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Live badge */}
-            <div className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium text-emerald-700">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-              <span className="hidden sm:inline">Live Pricing · 2026</span>
-              <span className="sm:hidden">Live · 2026</span>
+            {/* Right Header Section */}
+            <div className="flex items-center gap-3 sm:gap-4">
+              {/* Live badge */}
+              <div className="hidden sm:flex items-center gap-1.5 sm:gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium text-emerald-700">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
+                <span>Live Pricing · 2026</span>
+              </div>
+
+              {/* Auth Controls */}
+              {user ? (
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <User size={14} />
+                    </div>
+                    <span className="hidden sm:inline max-w-[100px] truncate">
+                      {user.user_metadata?.name || user.email?.split('@')[0]}
+                    </span>
+                  </div>
+                  <button
+                    onClick={signOut}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-muted/50 text-muted-foreground transition-colors hover:bg-background hover:text-destructive shadow-sm"
+                    title="Sign Out"
+                  >
+                    <LogOut size={14} />
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/auth"
+                  className="flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 shadow-sm"
+                >
+                  <LogIn size={13} />
+                  Sign In
+                </Link>
+              )}
             </div>
           </div>
         </div>
