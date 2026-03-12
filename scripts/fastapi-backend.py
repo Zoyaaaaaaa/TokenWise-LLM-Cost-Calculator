@@ -144,6 +144,7 @@ class ChatRequest(BaseModel):
     message:    str
     session_id: Optional[str] = None
     user_id:    Optional[str] = None   # Supabase user UUID
+    stream:     Optional[bool] = False
 
 class SessionCreateRequest(BaseModel):
     user_id: str
@@ -293,22 +294,68 @@ async def chat(
         db_save_message(session_id, user_id, "user", request.message)
 
     try:
-        result = assistant.query(
-            session_id,
-            request.message,
-            fetch_live_pricing=True,
-        )
-        response_text = result["assistant_response"]
+        if request.stream:
+            import queue
+            import threading
+            from fastapi.responses import StreamingResponse
 
-        # Persist assistant message
-        if user_id and supabase_admin:
-            db_save_message(session_id, user_id, "assistant", response_text)
+            q = queue.Queue()
 
-        return {
-            "response":   response_text,
-            "session_id": session_id,
-            "user_id":    user_id,
-        }
+            def run_query():
+                try:
+                    res = assistant.query(
+                        session_id,
+                        request.message,
+                        fetch_live_pricing=True,
+                        stream_queue=q
+                    )
+                    q.put({"type": "done", "result": res})
+                except Exception as exc:
+                    q.put({"type": "error", "error": str(exc)})
+
+            thread = threading.Thread(target=run_query)
+            thread.start()
+
+            def stream_generator():
+                # Send session ID early to the frontend
+                yield f'data: {json.dumps({"session_id": session_id})}\n\n'
+
+                full_response = ""
+                while True:
+                    item = q.get()
+                    if item["type"] == "token":
+                        full_response += item["content"]
+                        yield f'data: {json.dumps({"token": item["content"]})}\n\n'
+                    elif item["type"] == "end":
+                        pass
+                    elif item["type"] == "done":
+                        if user_id and supabase_admin:
+                            db_save_message(session_id, user_id, "assistant", full_response)
+                        yield f'data: {json.dumps({"done": True})}\n\n'
+                        break
+                    elif item["type"] == "error":
+                        yield f'data: {json.dumps({"error": item["error"]})}\n\n'
+                        break
+
+            return StreamingResponse(stream_generator(), media_type="text/event-stream")
+
+        else:
+            result = assistant.query(
+                session_id,
+                request.message,
+                fetch_live_pricing=True,
+            )
+            response_text = result["assistant_response"]
+
+            # Persist assistant message
+            if user_id and supabase_admin:
+                db_save_message(session_id, user_id, "assistant", response_text)
+
+            return {
+                "response":   response_text,
+                "session_id": session_id,
+                "user_id":    user_id,
+            }
 
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))

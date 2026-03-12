@@ -401,9 +401,12 @@ def fetch_pricing(state: AgentState) -> AgentState:
     }
 
 
-def generate_response(state: AgentState, llm=None, langfuse_handler=None) -> AgentState:
+def generate_response(state: AgentState, config: dict = None, llm=None, langfuse_handler=None) -> AgentState:
     """Node 3 — call Gemini via LangChain, tracked by Langfuse."""
     session_id = state["session_id"]
+    stream_queue = None
+    if config and "configurable" in config:
+        stream_queue = config["configurable"].get("stream_queue")
 
     system_prompt = state.get("system_prompt") or SYSTEM_PROMPT
     
@@ -423,9 +426,9 @@ def generate_response(state: AgentState, llm=None, langfuse_handler=None) -> Age
         return {**state, "assistant_response": _fallback_response(state["user_query"])}
 
     try:
-        config: Dict[str, Any] = {}
+        llm_config: Dict[str, Any] = {}
         if langfuse_handler:
-            config["callbacks"] = [langfuse_handler]
+            llm_config["callbacks"] = [langfuse_handler]
 
         system_prompt = state.get("system_prompt") or SYSTEM_PROMPT
         messages = [SystemMessage(content=system_prompt)]
@@ -452,17 +455,41 @@ def generate_response(state: AgentState, llm=None, langfuse_handler=None) -> Age
                     model=state.get("model_name", "gemini-2.5-flash"),
                     input=messages
                 ) as generation:
-                    response = llm.invoke(messages, config=config)
-                    generation.update(output=response.content)
-                    return {**state, "assistant_response": response.content}
+                    response_content = ""
+                    if stream_queue:
+                        for chunk in llm.stream(messages, config=llm_config):
+                            response_content += chunk.content
+                            stream_queue.put({"type": "token", "content": chunk.content})
+                        stream_queue.put({"type": "end"})
+                    else:
+                        response = llm.invoke(messages, config=llm_config)
+                        response_content = response.content
+                    generation.update(output=response_content)
+                    return {**state, "assistant_response": response_content}
             except Exception as e:
                 print(f"  [ERROR] Langfuse generation tracking failed: {e}")
                 # Fallback to standard invoke if observation fails
-                response = llm.invoke(messages, config=config)
-                return {**state, "assistant_response": response.content}
+                response_content = ""
+                if stream_queue:
+                    for chunk in llm.stream(messages, config=llm_config):
+                        response_content += chunk.content
+                        stream_queue.put({"type": "token", "content": chunk.content})
+                    stream_queue.put({"type": "end"})
+                else:
+                    response = llm.invoke(messages, config=llm_config)
+                    response_content = response.content
+                return {**state, "assistant_response": response_content}
         else:
-            response = llm.invoke(messages, config=config)
-            return {**state, "assistant_response": response.content}
+            response_content = ""
+            if stream_queue:
+                for chunk in llm.stream(messages, config=llm_config):
+                    response_content += chunk.content
+                    stream_queue.put({"type": "token", "content": chunk.content})
+                stream_queue.put({"type": "end"})
+            else:
+                response = llm.invoke(messages, config=llm_config)
+                response_content = response.content
+            return {**state, "assistant_response": response_content}
 
     except Exception as e:
         print(f"  [ERROR] LLM error: {e}")
@@ -607,7 +634,7 @@ class PricingAIAssistant:
         builder.add_node("fetch_pricing",    fetch_pricing)
         builder.add_node(
             "generate_response",
-            lambda state: generate_response(state, llm=llm, langfuse_handler=langfuse_handler),
+            lambda state, config: generate_response(state, config, llm=llm, langfuse_handler=langfuse_handler)
         )
 
         builder.set_entry_point("detect_providers")
@@ -654,6 +681,7 @@ class PricingAIAssistant:
         user_query: str,
         fetch_live_pricing: bool = True,
         system_prompt: Optional[str] = None,
+        stream_queue = None,
     ) -> Dict[str, Any]:
 
         """Run the LangGraph agent and return the assistant response."""
@@ -689,9 +717,13 @@ class PricingAIAssistant:
                         }
 
                         # Invoke with config containing thread_id for checkpointer
+                        invoke_config = {"configurable": {"thread_id": session_id}}
+                        if stream_queue:
+                            invoke_config["configurable"]["stream_queue"] = stream_queue
+                        
                         final_state = self.graph.invoke(
                            initial_state,
-                            config={"configurable": {"thread_id": session_id}}
+                           config=invoke_config
                         )
                         assistant_response = final_state["assistant_response"]
                     else:
@@ -718,9 +750,13 @@ class PricingAIAssistant:
                         "system_prompt":        system_prompt,
                     }
                     # Invoke with config containing thread_id for checkpointer
+                    invoke_config = {"configurable": {"thread_id": session_id}}
+                    if stream_queue:
+                        invoke_config["configurable"]["stream_queue"] = stream_queue
+
                     final_state = self.graph.invoke(
                        initial_state,
-                        config={"configurable": {"thread_id": session_id}}
+                       config=invoke_config
                     )
                     assistant_response = final_state["assistant_response"]
                 else:
@@ -742,9 +778,13 @@ class PricingAIAssistant:
                 }
 
                 # Invoke with config containing thread_id for checkpointer
+                invoke_config = {"configurable": {"thread_id": session_id}}
+                if stream_queue:
+                    invoke_config["configurable"]["stream_queue"] = stream_queue
+
                 final_state = self.graph.invoke(
                    initial_state,
-                    config={"configurable": {"thread_id": session_id}}
+                   config=invoke_config
                 )
                 assistant_response = final_state["assistant_response"]
             else:

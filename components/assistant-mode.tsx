@@ -179,30 +179,87 @@ export function AssistantMode() {
           message: msg,
           session_id: sessionId || undefined,
           user_id: user?.id,
+          stream: true,
         }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.detail ?? 'Request failed');
-
-      // Update session ID (backend may create a new one)
-      if (data.session_id && !sessionId) {
-        setSessionId(data.session_id);
-        // Refresh sidebar list
-        if (user) loadSessions();
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail ?? 'Request failed');
       }
 
+      const assistantMessageId = (Date.now() + 1).toString();
       setMessages((prev) => [
         ...prev,
         {
-          id: (Date.now() + 1).toString(),
+          id: assistantMessageId,
           role: 'assistant',
-          content: data.response ?? 'No response received.',
+          content: '',
           timestamp: new Date(),
         },
       ]);
+      
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      if (!reader) throw new Error('No reader available');
+
+      let buffer = '';
+      let isFirstToken = true;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+            if (line.trim().startsWith('data: ')) {
+                try {
+                    const parsed = JSON.parse(line.trim().slice(6));
+                    
+                    if (parsed.session_id) {
+                        setSessionId(prev => {
+                            if (!prev && user) {
+                                setTimeout(() => loadSessions(), 500);
+                            }
+                            return parsed.session_id;
+                        });
+                    }
+                    
+                    if (parsed.token) {
+                        if (isFirstToken) {
+                            setIsLoading(false);
+                            isFirstToken = false;
+                        }
+                        setMessages((prev) => prev.map(m => 
+                            m.id === assistantMessageId 
+                                ? { ...m, content: m.content + parsed.token }
+                                : m
+                        ));
+                    }
+                    
+                    if (parsed.error) {
+                        setIsLoading(false);
+                        setMessages((prev) => prev.map(m => 
+                            m.id === assistantMessageId 
+                                ? { ...m, content: m.content + `\n\n**Error:** ${parsed.error}` }
+                                : m
+                        ));
+                    }
+                    
+                    if (parsed.done) {
+                        setIsLoading(false);
+                    }
+                } catch (e) {
+                    // Ignore parsing errors for incomplete lines
+                }
+            }
+        }
+      }
     } catch (err) {
+      setIsLoading(false);
       setMessages((prev) => [
         ...prev,
         {
@@ -212,8 +269,6 @@ export function AssistantMode() {
           timestamp: new Date(),
         },
       ]);
-    } finally {
-      setIsLoading(false);
     }
   }
 
