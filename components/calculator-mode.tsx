@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { MODELS, calculateCost, convertToINR, formatCurrency, USD_TO_INR_RATE, type ModelPricing, type Currency } from '@/lib/pricing-data';
+import { CurrencySelector, SUPPORTED_CURRENCIES, fetchExchangeRates, convertPrice, type Currency as SupportedCurrency } from './currency-selector';
 import { PricingVerification } from './pricing-verification';
 import { Calculator, ArrowRight, Info, DollarSign, Shield } from 'lucide-react';
 
@@ -22,9 +23,15 @@ export function CalculatorMode() {
   const [outputTokens, setOutputTokens] = useState<number>(2000);
   const [useCached, setUseCached] = useState<boolean>(false);
   const [result, setResult] = useState<any | null>(null);
-  const [currency, setCurrency] = useState<Currency>('USD');
+  const [currency, setCurrency] = useState<SupportedCurrency>('USD');
+  const [exchangeRates, setExchangeRates] = useState<Record<SupportedCurrency, number> | null>(null);
 
   const models = MODELS[provider] || [];
+
+  // Fetch exchange rates on mount
+  useEffect(() => {
+    fetchExchangeRates(Object.keys(SUPPORTED_CURRENCIES) as SupportedCurrency[]).then(setExchangeRates);
+  }, []);
 
   const handleModelChange = (modelName: string) => {
     const model = models.find((m) => m.name === modelName);
@@ -173,39 +180,13 @@ export function CalculatorMode() {
 
         {/* ── Right: Results ── */}
         <div>
-          <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Cost Breakdown
-            </h2>
-            <div className="flex items-center gap-2">
-              {/* Exchange Rate Badge */}
-              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                1 USD = {USD_TO_INR_RATE} INR
-              </span>
-              {/* Currency Toggle */}
-              <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-1">
-                <button
-                  onClick={() => setCurrency('USD')}
-                  className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
-                    currency === 'USD'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  USD ($)
-                </button>
-                <button
-                  onClick={() => setCurrency('INR')}
-                  className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
-                    currency === 'INR'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  INR (₹)
-                </button>
-              </div>
+          <div className="mb-4 flex flex-col gap-4">
+            <div>
+              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
+                Cost Breakdown
+              </h2>
             </div>
+            <CurrencySelector value={currency} onChange={setCurrency} label="Display Currency" />
           </div>
 
           {result ? (
@@ -215,20 +196,20 @@ export function CalculatorMode() {
                 <div className="rounded-xl border border-border/60 bg-card p-4">
                   <p className="text-xs text-muted-foreground">Input Cost</p>
                   <p className="mt-1 text-2xl font-bold text-foreground">
-                    {formatCurrency(currency === 'INR' ? convertToINR(result.inputCost) : result.inputCost, currency)}
+                    {exchangeRates && currency !== 'USD'
+                      ? convertPrice(result.inputCost, currency, exchangeRates[currency])
+                      : `$${result.inputCost.toFixed(4)}`
+                    }
                   </p>
-                  {currency === 'INR' && (
-                    <p className="text-[10px] text-muted-foreground">${result.inputCost.toFixed(4)}</p>
-                  )}
                 </div>
                 <div className="rounded-xl border border-border/60 bg-card p-4">
                   <p className="text-xs text-muted-foreground">Output Cost</p>
                   <p className="mt-1 text-2xl font-bold text-foreground">
-                    {formatCurrency(currency === 'INR' ? convertToINR(result.outputCost) : result.outputCost, currency)}
+                    {exchangeRates && currency !== 'USD'
+                      ? convertPrice(result.outputCost, currency, exchangeRates[currency])
+                      : `$${result.outputCost.toFixed(4)}`
+                    }
                   </p>
-                  {currency === 'INR' && (
-                    <p className="text-[10px] text-muted-foreground">${result.outputCost.toFixed(4)}</p>
-                  )}
                 </div>
               </div>
 
@@ -236,11 +217,11 @@ export function CalculatorMode() {
               <div className="rounded-xl border border-primary/25 bg-primary/5 p-5">
                 <p className="text-xs font-medium text-primary/70">Total Cost</p>
                 <p className="mt-1 text-4xl font-bold text-primary">
-                  {formatCurrency(currency === 'INR' ? convertToINR(result.totalCost) : result.totalCost, currency)}
+                  {exchangeRates && currency !== 'USD'
+                    ? convertPrice(result.totalCost, currency, exchangeRates[currency])
+                    : `$${result.totalCost.toFixed(4)}`
+                  }
                 </p>
-                {currency === 'INR' && (
-                  <p className="text-xs text-muted-foreground">${result.totalCost.toFixed(4)} USD</p>
-                )}
                 <p className="mt-1 text-xs text-muted-foreground">per API request</p>
               </div>
 
